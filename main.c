@@ -1,6 +1,6 @@
 // main.c, 159
 // kernel is only simulated
-// Phase 5
+// Phase 6
 // Team Name: MAARK (Members: Andreas Bueff, Mike Smith)
 
 #include "spede.h"      // spede stuff
@@ -14,7 +14,7 @@
 
 // kernel data stuff:
 int run_pid;   // current running PID, if -1, no one running
-										
+
 int system_time;
 
 q_t proc_q, unused_q, sleep_q,semaphore_q;   // processes ready to run and ID's un-used
@@ -30,15 +30,18 @@ struct i386_gate *IDT_ptr;
 
 
 int main() {
- 
+
 	SetData();
 	SetControl();
 	NewProcISR();//create init proc
 	NewProcISR();//create printdriver
+	NewProcISR();
+	NewProcISR();
+	NewProcISR();
 	Scheduler();
-	Loader(pcb[run_pid].trapframe_p); 
-	
-   return 0; 
+	Loader(pcb[run_pid].trapframe_p);
+
+   return 0;
 }
 
 void SetData() {
@@ -46,7 +49,7 @@ void SetData() {
 	system_time = 0;
 	//product_mbox_num = 0;
    system_print_semaphore = 0;
-   
+
    MyBzero((char*)&proc_q,sizeof(proc_q));   //set process to run queue to all 0s
    MyBzero((char*)&unused_q,sizeof(unused_q)); //set unused processes queue to all 0s
    MyBzero((char*)&sleep_q,sizeof(sleep_q));
@@ -58,7 +61,7 @@ void SetData() {
 	EnQ(i,&semaphore_q);
 	pcb[i].state = UNUSED;
    }
-  
+
    run_pid = -1;  /**(not given, need to chose a process to run, by Scheduler())*/
 }
 
@@ -67,14 +70,14 @@ void Scheduler() {            // choose run PID
    if( run_pid != -1){
 	return;
    }
-	
+
 	if(proc_q.size != 0){
 		run_pid = DeQ(&proc_q);
 		pcb[run_pid].state = RUN;
 	}
 	else{//proc_q was empty
 		cons_printf("Kernel Panic: not process to run!\n");
-		breakpoint();//might not exist 
+		breakpoint();//might not exist
 	}
 }
 
@@ -91,11 +94,11 @@ contains 3 statements learned from the timer lab:
    (but NO "sti" since it will be given from a trapframe to be loaded)
 */
 	IDT_ptr = get_idt_base(); // locate IDT
-	outportb(0x21, ~153);//program PIC mask
+	//program PIC mask//153
 	SetEntry(32, TimerEntry);//fill out IDT timer entry (for handling of timer interrupts)
 	SetEntry(35, TerminalEntry);
 	SetEntry(39, PrinterEntry);
-	
+
 	/**add new IDT entires----not correct yet*/
 	SetEntry(48, GetPidEntry);
 	SetEntry(49, GetTimeEntry);
@@ -105,14 +108,14 @@ contains 3 statements learned from the timer lab:
 	SetEntry(53, SemWaitEntry);
 	SetEntry(54, MsgSndEntry);
 	SetEntry(55, MsgRcvEntry);
-	
+	outportb(0x21, ~137);
 }
 
 
 
 void Kernel(trapframe_t *p) {
    /**save p into the PCB of the running process*/
-   
+
    pcb[run_pid].trapframe_p = p;
    switch(p->intr_num){
 		case TIMER_INTR:
@@ -140,7 +143,7 @@ void Kernel(trapframe_t *p) {
 			SemGetISR();
 			break;
 		case SEMPOST_INTR:
-			SemPostISR(pcb[run_pid].trapframe_p->eax);
+			SemPostISR(p->eax);
 			break;
 		case SEMWAIT_INTR:
 			SemWaitISR();
@@ -155,10 +158,10 @@ void Kernel(trapframe_t *p) {
 			cons_printf("Kernel Panic: no such intr # (%d)!\n", p->intr_num);
 			breakpoint();
    }
- 
 
-   
-   
+
+
+
    Scheduler();// to choose next running process if needed
    Loader(pcb[run_pid].trapframe_p);
 }

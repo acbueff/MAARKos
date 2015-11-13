@@ -12,13 +12,13 @@ void NewProcISR(){
    /**check unused_q if no ID left
       show msg on PC: "Kernel Panic: no more process ID left!\n"
       return;*/
-	 if(unused_q.size == 0){ //keep in mind proc 0 should always run 
+	 if(unused_q.size == 0){ //keep in mind proc 0 should always run
 		cons_printf("Kernel Panic: no more process ID left!\n");
 		return;
 	 }
 
    /**dequeue unused_q for a new pid*/
-   
+
    new_pid = DeQ(&unused_q);
    /**set PCB of new process (indexed by pid):
    reset both time and total_time
@@ -26,11 +26,11 @@ void NewProcISR(){
    pcb[new_pid].state = READY;
    pcb[new_pid].time = 0;
    pcb[new_pid].total_time = 0;
-   
+
 
    /**enqueue this new pid into process queue*/
    EnQ(new_pid, &proc_q);
-   
+
    //following is to build proc trapframe in its runtime stack
    MyBzero(stack[new_pid],STACK_SIZE);
    // position to frame it against top of stack, then fill it out
@@ -47,10 +47,10 @@ void NewProcISR(){
       pcb[new_pid].trapframe_p->eip = (unsigned int)UserShell;   // other processes
    }
    if(new_pid == 3){
-      pcb[new_pid].trapframe_p->eip = (unsigned int)TerminalOut;   // other processes
+      pcb[new_pid].trapframe_p->eip = (unsigned int)TerminalIn;   // other processes
    }
    if(new_pid == 4){
-      pcb[new_pid].trapframe_p->eip = (unsigned int)TerminalIn;   // other processes
+      pcb[new_pid].trapframe_p->eip = (unsigned int)TerminalOut;   // other processes
    }
 
 /**	else{
@@ -62,7 +62,7 @@ void NewProcISR(){
    pcb[new_pid].trapframe_p->es = get_es();                     // standard fair
    pcb[new_pid].trapframe_p->fs = get_fs();                     // standard fair
    pcb[new_pid].trapframe_p->gs = get_gs();                     // standard fair
-   
+
 }
 
 void ProcExitISR() {
@@ -70,7 +70,7 @@ void ProcExitISR() {
    if(run_pid == 0){
 		return;
    }
-      
+
    /**change state of running process to UNUSED
    queue running PID back to unused queue
    set running PID to -1 (now not given)*/
@@ -84,18 +84,18 @@ void TimerSub(){
 	int sleepPID;
 	if(sleep_q.size != 0){
 		for(i = 0; i < sleep_q.size; i++){
-		sleepPID = DeQ(&sleep_q);
-		if(system_time >= pcb[sleepPID].wake_time){
-			EnQ(sleepPID, &proc_q);
-			pcb[sleepPID].state = READY;
-		}
-		else{
-			EnQ(sleepPID,&sleep_q);
-		}
+			sleepPID = DeQ(&sleep_q);
+			if(system_time >= pcb[sleepPID].wake_time){
+				EnQ(sleepPID, &proc_q);
+				pcb[sleepPID].state = READY;
+			}
+			else{
+				EnQ(sleepPID,&sleep_q);
+			}
 		}
 	}
-	
-}        
+
+}
 
 void TimerISR() {
 
@@ -110,7 +110,7 @@ void TimerISR() {
    /**upcount the CPU time of running process*/
    pcb[run_pid].time++;
 
-  
+
    if(pcb[run_pid].time == T_SLICE){ // the time counted has reached to be T_SLICE:
 		//(should rotate to next PID in process queue)
 		pcb[run_pid].total_time = pcb[run_pid].time + pcb[run_pid].total_time;//sum up time to total time in PCB of running process
@@ -119,8 +119,8 @@ void TimerISR() {
 		EnQ(run_pid, &proc_q);//queue it to process queue
 		run_pid = -1;//set running PID to -1 (gone, Scheduler() will pick a new one)
 	}
-	     
-      
+
+
 }
 
 void GetPidISR(){
@@ -156,13 +156,11 @@ void SemGetISR(){
 	}
 }
 void SemPostISR(int sem_num){
-	//int pid = pcb[run_pid].trapframe_p->eax;
 	int waitPid;
 	if(semaphore[sem_num].wait_q.size == 0){
 		semaphore[sem_num].pass_count++;
 	}
 	else{
-	//cons_printf("!!!SemPostIsR: freeing process # %d !!!\n",run_pid);
 		waitPid = DeQ(&(semaphore[sem_num].wait_q));
 		EnQ(waitPid, &proc_q);
 		pcb[waitPid].state = READY;
@@ -172,14 +170,13 @@ void SemWaitISR(){
 	int pid = pcb[run_pid].trapframe_p->eax;
 	if(semaphore[pid].pass_count > 0){
 		semaphore[pid].pass_count--;
-		
+
 	}
 	else{
-		//cons_printf("!!!SemWaitIsR: blocking process # %d !!!\n",run_pid);
 		EnQ(run_pid, &(semaphore[pid].wait_q));
 		pcb[run_pid].state = WAIT;
 		run_pid = -1;
-		
+
 	}
 }
 
@@ -188,7 +185,7 @@ void MsgSndISR(){
 	int freed; //PID
 	msg_t *source_p;
 	msg_t *destination_p;
-	
+
 	//get x from the register in the trapframe passed over
 	x = pcb[run_pid].trapframe_p->eax;
 	source_p = (msg_t *)pcb[run_pid].trapframe_p->ebx;
@@ -205,19 +202,19 @@ void MsgSndISR(){
 		//use source_p and destination_p;
 		destination_p = (msg_t *)pcb[freed].trapframe_p->ebx;
 		*destination_p = *source_p;
-		
+
 	}
-	
+
 }
 
 void MsgRcvISR(){
 	int x;
 	msg_t *source_p;
 	msg_t *destination_p;
-	
+
 	x = pcb[run_pid].trapframe_p->eax;
 	destination_p = (msg_t *)pcb[run_pid].trapframe_p->ebx;
-	
+
 	if(mbox[x].size != 0){
 		source_p = (msg_t *)MsgDeQ(&mbox[x]);
 		*destination_p = *source_p;
@@ -226,19 +223,18 @@ void MsgRcvISR(){
 		EnQ(run_pid, &(mbox[x].wait_q));
 		pcb[run_pid].state = WAIT;
 		run_pid = -1;
-	
+
 	}
 }
 
 
 void PrinterISR(){
-	//int pid = pcb[run_pid].trapframe_p->eax;
+
 	int waitPid;
 	if(semaphore[system_print_semaphore].wait_q.size == 0){
 		semaphore[system_print_semaphore].pass_count++;
 	}
 	else{
-	//cons_printf("!!!PrinterIsR: freeing process # %d !!!\n",run_pid);
 		waitPid = DeQ(&(semaphore[system_print_semaphore].wait_q));
 		EnQ(waitPid, &proc_q);
 		pcb[waitPid].state = READY;
@@ -246,8 +242,9 @@ void PrinterISR(){
 }
 
 void TerminalISR(){
-	char status;
+	int status;
 	status = inportb(COM2_IOBASE+IIR);
+
 	switch(status){
 		case IIR_TXRDY:
 			TerminalISRout();
@@ -264,50 +261,40 @@ void TerminalISR(){
 }
 
 void TerminalISRout(){
-	// dequeue out_q to write to port
-      char ch = 0; // NUL, '\0'
- 
-      if(proc_interface.echo_q.size != 0){//echo queue of the interface is not empty {
-         ch = DeQ(&proc_interface.echo_q);//dequeue from echo queue of the interface
-      } else {
+	char ch = 0;
+	if(proc_interface.echo_q.size != 0){//echo queue of the interface is not empty {
+         ch =DeQ(&proc_interface.echo_q);//dequeue from echo queue of the interface
+	  } else {
          if(proc_interface.out_q.size != 0){//out queue of the interface is not empty
             ch = DeQ(&proc_interface.out_q);//dequeue from out queue of the interface
-            SemPostISR( proc_interface.out_q_sem);
+			SemPostISR( proc_interface.out_q_sem);
 		}
 	 }
       if(ch != 0){
-         //use outportb() to send ch to COM2_IOBASE+DATA
-         outportb(ch,COM2_IOBASE+DATA);
-		 //out_extra is cleared (to 0)
-		//MyBzero(proc_interface.out_extra);
+        outportb(COM2_IOBASE+DATA,ch);
 		proc_interface.out_extra = 0;
 	  } else {
-         //out_extra is set to 1 (cannot use it now since no char)
 		proc_interface.out_extra = 1;
 	  }
 
 }
 
 void TerminalISRin(){
-	char ch;
- 
-      // use 127 to mask out msb (rest 7 bits in ASCII range)
+	  char ch;
+
       ch = inportb(COM2_IOBASE+DATA) & 0x7F;  // mask 0111 1111
- 
-      //enqueue ch to in_q of the interface
+
       EnQ(ch,&proc_interface.in_q);
 	  SemPostISR(proc_interface.in_q_sem);
- 
+
       if(ch =='\r' ){
-        // enqueue '\r' then '\n' to echo_q of the interface
-		EnQ('\r',&proc_interface.echo_q);
+		EnQ(ch,&proc_interface.echo_q);
 		EnQ('\n',&proc_interface.echo_q);
 	  } else {
-         if(proc_interface.flag == 1){ //echo of the interface is 1 {
-            //enqueue ch to echo_q of the interface
+         if(proc_interface.flag == 1){
 				EnQ(ch,&proc_interface.echo_q);
 		 }
       }
 
 }
-	
+

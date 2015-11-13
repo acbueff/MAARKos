@@ -5,12 +5,12 @@
 #include "extern.h"     // for current_run_pid needed here below
 #include "proc.h"       // for prototypes of process functions
 #include "syscall.h"
-#include "type.h" 
+#include "type.h"
 #include "tool.h"
 
 void InitProc() {
 	int i;
-   //show msg on PC: 
+   //show msg on PC:
    char key;
    char *msg = "Hello World! Team MAARK standing by\n";
    msg_t my_msg;
@@ -19,8 +19,8 @@ void InitProc() {
    while(1){
     cons_printf("InitProc runs\n");
 	for(i = 0; i<1666000; i++) IO_DELAY(); //only .65 micro
-   
-	if(cons_kbhit()){  //a key has been pressed on PC 
+
+	if(cons_kbhit()){  //a key has been pressed on PC
 		key = cons_getchar();
 		switch(key) {
 			 case 'b':
@@ -34,7 +34,7 @@ void InitProc() {
 				exit(0); //to quit MyOS.dli
      } // end switch
    } // end if key pressed
-   
+
    }
 }
 
@@ -45,10 +45,10 @@ void UserProc() {
    while(1){
    ownPID = GetPid();
    sysTime = GetTime();
-   sleep = (ownPID % 5) + 1;   
+   sleep = (ownPID % 5) + 1;
    //cons_printf("UserProc # %d runs, got time = %d, sleep %d seconds\n",ownPID,sysTime,sleep);
    Sleep(sleep);
-   	
+
    }
 }
 
@@ -86,35 +86,26 @@ void PrintDriver() {
 		SemWait(system_print_semaphore);
 		p++;
          //move pointer p to next character in message string
-      }//end while 
+      }//end while
    }//end forever loop
 }//end PrintDriver()
 
 
 void UserShell(){
-	 msg_t msg;
+   msg_t msg;
    char something[101]; // a handy string
-   char *firstmsg = "Hello World!\n";
    int BAUD_RATE, divisor,               // serial port use
        i, my_pid, // size,
        TerminalInPid = 3,                // helper: TerminalIn process
        TerminalOutPid = 4;               // helper: TerminalOut process
- 
    //initialize the interface data structure:
-   //A. first clear (bzero) the whole interface data structure
-   //interface_t proc_interface;
    MyBzero((char*)&proc_interface,sizeof(proc_interface));
-   //B. get a semaphore as out_q_sem of the interface
-   proc_interface.out_q_sem = SemGet();
-   //C. loop Q_SIZE times to sem-post it (so pass_count equals char spaces of out_q)
+   proc_interface.out_q_sem = SemGet();//==1
+   proc_interface.in_q_sem = SemGet();//==2
    for(i = 0; i < Q_SIZE;i++){
 		SemPost(proc_interface.out_q_sem);
    }
-   //D. get a semaphore as in_q_sem of the interface (pass_count is 0, no input yet)
-   proc_interface.in_q_sem = SemGet();
-   //E. set flag to 1 (default is to echo back whatever typed from terminal)
    proc_interface.flag = 1;
-   //F. set out_extra to 1 (missed 1st TXRDY event)
    proc_interface.out_extra = 1;
    //reset the serial port:
    // A. set baud rate 9600
@@ -131,35 +122,37 @@ void UserShell(){
    IO_DELAY();
    outportb(COM2_IOBASE+IER, IER_ERXRDY|IER_ETXRDY); // enable TX, RX events
    IO_DELAY();
-   
+
    my_pid = GetPid();
- 
-   //prompt a hello-world msg (see demo)
-   MyStrcpy(msg.data,firstmsg);
-   //(send msg to TerminalOutPid, receive its reply)
+
+   msg.sender = my_pid;
+
+   MyStrcpy(msg.data,"\nHello World! Team MAARK is here!\n");
    MsgSnd(TerminalOutPid,&msg);
    MsgRcv(my_pid,&msg);
+
   while(1){
-      //prompt a msg to enter something
-	  //msg.data = "something";
+
       //(send msg to TerminalOutPid, receive its reply)
+	  MyStrcpy(msg.data,"\nEnter something->");
 	  MsgSnd(TerminalOutPid,&msg);
 	  MsgRcv(my_pid,&msg);
+
       //get what's entered
-      //(send msg to TerminalInPid, receive its reply)
+	  MyStrcpy(something,msg.data);
 	  MsgSnd(TerminalInPid,&msg);
 	  MsgRcv(my_pid,&msg);
-      //copy what's entered from msg to string "something"
+
 	  MyStrcpy(something,msg.data);
-      cons_printf("You've entered -> ");
-      //(send msg to TerminalOutPid, receive its reply)
+
+	  MyStrcpy(msg.data,"You've entered ->");
 	  MsgSnd(TerminalOutPid,&msg);
-	  MsgRcv(my_pid,&msg); 
-      //copy "something" to msg.data to prompt
-      MyStrcpy(msg.data,something);
+	  MsgRcv(my_pid,&msg);
+
 	  //(send msg to TerminalOutPid, receive its reply)
+	  MyStrcpy(msg.data,something);
 	  MsgSnd(TerminalOutPid,&msg);
-	  MsgRcv(my_pid,&msg); 
+	  MsgRcv(my_pid,&msg);
    }//end forever loop
 }
 
@@ -170,28 +163,27 @@ void TerminalIn(){
 	int my_pid = GetPid();
 	while(1){
 		MsgRcv(my_pid,&msg);
-		*p = msg.data[0];
+		p = msg.data;
 		while(1){
 			SemWait(proc_interface.in_q_sem);
-			ch = DeQ(&proc_interface.in_q);
+			ch = (char)DeQ(&proc_interface.in_q);
 			if(ch == '\r'){break;}
-			p++;// = ch;
-			ch = *p;
+			*p++ = ch;
+			//ch = *p;
 		}
 		*p='\0';
-		MsgSnd(my_pid,&msg);
+		MsgSnd(msg.sender,&msg);
 	}
 }
 
 void TerminalOut(){
 	char *p;
-	char ch;
 	msg_t msg;
-	//int my_pid = GetPid();
+	int my_pid = GetPid();
 	while(1){
-		MsgRcv(2,&msg);
-		*p = msg.data[0];
-		while(ch == '\0'){
+		MsgRcv(my_pid,&msg);
+		p = msg.data;
+		while(*p != '\0'){
 			SemWait(proc_interface.out_q_sem);
 			EnQ((int)*p,&proc_interface.out_q);
 			TripTerminal();
@@ -201,7 +193,7 @@ void TerminalOut(){
 			}
 			p++;
 		}
-		//msg.data = "sender pid, or something\n"; //maybe
-		MsgSnd(2,&msg);
+
+		MsgSnd(msg.sender,&msg);
 	}
 }
