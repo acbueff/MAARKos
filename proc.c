@@ -94,6 +94,7 @@ void PrintDriver() {
 void UserShell(){
    msg_t msg;
    char something[101]; // a handy string
+   char login[101],password[101];
    int BAUD_RATE, divisor,               // serial port use
        i, my_pid, // size,
        TerminalInPid = 3,                // helper: TerminalIn process
@@ -127,14 +128,57 @@ void UserShell(){
 
    msg.sender = my_pid;
 
-   MyStrcpy(msg.data,"\nHello World! Team MAARK is here!\n");
-   MsgSnd(TerminalOutPid,&msg);
-   MsgRcv(my_pid,&msg);
+   MyStrcpy(msg.data, "\n\n\n\nHello, World! MAARK here!\n\n");
+   MsgSnd(TerminalOutPid, &msg);        // prompt this
+   MsgRcv(my_pid, &msg);                // stop/go sync, content ignored
+
+   MyStrcpy(msg.data, "After login, commands are: dir [path], cat (file), out\n");
+   MsgSnd(TerminalOutPid, &msg);
+   MsgRcv(my_pid, &msg);
+
+   MyStrcpy(msg.data, "(or use 111/222/000 as above if keyboard MISSING keys.)\n\n\0");
+   MsgSnd(TerminalOutPid, &msg);
+   MsgRcv(my_pid, &msg);
+
+
+  while(1){
+	while(1){
+		//prompt
+		MyStrcpy(msg.data, "(MAARK) login -> ");
+		MsgSnd(TerminalOutPid,&msg);
+		MsgRcv(my_pid,&msg);
+		//get what's entered(login)
+		MyStrcpy(login,msg.data);
+		MsgSnd(TerminalInPid,&msg);
+		MsgRcv(my_pid,&msg);
+		//prompt
+		MyStrcpy(msg.data,"(MAARK) password -> ");
+		MsgSnd(TerminalOutPid,&msg);
+		MsgRcv(my_pid,&msg);
+		//turn echo flag off in interface
+		proc_interface.flag = 0;
+		//get what's entered(password)
+		//get what's entered
+		MyStrcpy(password,msg.data);
+		MsgSnd(TerminalInPid,&msg);
+		MsgRcv(my_pid,&msg);
+		//compare password
+		if(MyStrcmp(password,login, sizeof(login))){
+			break;
+		}else{
+			MyStrcpy(msg.data,"Invalid login/password!\n");
+			MsgSnd(TerminalOutPid,&msg);
+			MsgRcv(my_pid,&msg);
+		}
+
+
+	}
+  }
 
   while(1){
 
-      //(send msg to TerminalOutPid, receive its reply)
-	  MyStrcpy(msg.data,"\nEnter something->");
+      //prompt
+	  MyStrcpy(msg.data, "(My Team Name) UserShell -> ");
 	  MsgSnd(TerminalOutPid,&msg);
 	  MsgRcv(my_pid,&msg);
 
@@ -142,17 +186,32 @@ void UserShell(){
 	  MyStrcpy(something,msg.data);
 	  MsgSnd(TerminalInPid,&msg);
 	  MsgRcv(my_pid,&msg);
-
-	  MyStrcpy(something,msg.data);
-
-	  MyStrcpy(msg.data,"You've entered ->");
-	  MsgSnd(TerminalOutPid,&msg);
-	  MsgRcv(my_pid,&msg);
-
-	  //(send msg to TerminalOutPid, receive its reply)
-	  MyStrcpy(msg.data,something);
-	  MsgSnd(TerminalOutPid,&msg);
-	  MsgRcv(my_pid,&msg);
+	  if(MyStrlen(msg.data) ==0){//skip if empty
+		continue;
+	  }
+	  else if(MyStrcmp(msg.data, "out", sizeof("out"))||MyStrcmp(msg.data, "000", sizeof("000"))){
+		break;//break to relogin
+	  }
+	  else if(MyStrcmp(msg.data, "dir", sizeof("dir"))||MyStrcmp(msg.data, "111", sizeof("111"))){
+		Dir(msg.data, TerminalOutPid,FileSystemPid);
+		//prompt?
+		MsgSnd(TerminalOutPid,&msg);
+		MsgRcv(my_pid,&msg);
+		continue;
+	  }
+	  else if(MyStrcmp(msg.data, "dir", sizeof("cat"))||MyStrcmp(msg.data, "222", sizeof("222"))){
+		Cat(msg.data, TerminalOutPid, FileSystemPid);
+		//prompt?
+		MsgSnd(TerminalOutPid,&msg);
+		MsgRcv(my_pid,&msg);
+        continue;
+	  }
+	  else{
+		//prompt
+		  MyStrcpy(msg.data, "Bad command!\n");
+		  MsgSnd(TerminalOutPid,&msg);
+		  MsgRcv(my_pid,&msg);
+	  }
    }//end forever loop
 }
 
@@ -196,4 +255,161 @@ void TerminalOut(){
 
 		MsgSnd(msg.sender,&msg);
 	}
+}
+
+void DirStr(attr_t *p, char *str) { // build str from attributes in given target
+// msg.data has 2 parts: attr_t and target, p+1 points to target
+   char *target = (char *)(p + 1);
+
+// build str from attr_t p points to
+   sprintf(str, " - - - -  size =%6d    %s\n", p->size, target);
+   if ( A_ISDIR(p->mode) ) str[1] = 'd';         // mode is directory
+   if ( QBIT_ON(p->mode, A_ROTH) ) str[3] = 'r'; // mode is readable
+   if ( QBIT_ON(p->mode, A_WOTH) ) str[5] = 'w'; // mode is writable
+   if ( QBIT_ON(p->mode, A_XOTH) ) str[7] = 'x'; // mode is executable
+}
+
+// "dir" command, UserShell talks to FileSystem and TerminalOut
+// make sure cmd ends with \0: "dir\0" or "dir obj...\0"
+void Dir(char *cmd, int TerminalOutPid, int FileSystemPid) {
+   int my_pid;
+   char str[101];
+   msg_t msg;
+   attr_t *p;
+
+   my_pid = GetPid();
+
+// if cmd is "ls" assume "ls /\0" (on root dir)
+// else, assume user specified an target after first 3 letters "ls "
+   if(cmd[3] == ' ') {
+      cmd += 4; // skip 1st 4 letters "dir " and get the rest: obj...
+   } else {
+      cmd[0] = '/';
+      cmd[1] = '\0'; // null-terminate the target
+   }
+
+// apply standard "check target" protocol
+   msg.code = CHK_OBJ;
+   MyStrcpy(msg.data, cmd);
+
+   MsgSnd(FileSystemPid, &msg);     // send msg to FileSystem
+   MsgRcv(my_pid, &msg);            // receive reply
+
+   if(msg.code != GOOD) {           // chk result code
+      MyStrcpy(msg.data, "Dir: CHK_OBJ returns NOT GOOD!\n\0");
+      MsgSnd(TerminalOutPid, &msg);
+      MsgRcv(my_pid, &msg);
+
+      return;
+   }
+
+   p = (attr_t *)msg.data; // otherwise, code good, msg has "attr_t,"
+
+   if(! A_ISDIR(p->mode)) {      // if it's file, "dir" it
+      DirStr(p, str);             // str will be built and returned
+      MyStrcpy(msg.data, str);   // go about since p pointed to msg.data
+      MsgSnd(TerminalOutPid, &msg);
+      MsgRcv(my_pid, &msg);
+
+      return;
+   }
+
+// otherwise, it's a DIRECTORY! -- list each entry in it in loop.
+// 1st request to open it, then issue reads in loop
+
+// apply standard "open target" protocol
+   msg.code = OPEN_OBJ;
+   MyStrcpy(msg.data, cmd);
+   MsgSnd(FileSystemPid, &msg);
+   MsgRcv(my_pid, &msg);
+
+   while(1) {                     // apply standard "read obj" protocol
+      msg.code = READ_OBJ;
+      MsgSnd(FileSystemPid, &msg);
+      MsgRcv(my_pid, &msg);
+
+      if(msg.code != GOOD) break; // EOF
+
+// do same thing to show it via STANDOUT
+      p = (attr_t *)msg.data;
+      DirStr(p, str);                // str will be built and returned
+      MyStrcpy(msg.data, str);
+      MsgSnd(TerminalOutPid, &msg);  // show str onto terminal
+      MsgRcv(my_pid, &msg);
+   }
+
+// apply "close obj" protocol with FileSystem
+// if response is not good, display an error msg via TerminalOut...
+   msg.code = CLOSE_OBJ;
+   MsgSnd(FileSystemPid, &msg);
+   MsgRcv(my_pid, &msg);
+
+   if(msg.code != GOOD) {
+      MyStrcpy(msg.data, "Dir: CLOSE_OBJ returns NOT GOOD!\n\0");
+      MsgSnd(TerminalOutPid, &msg);
+      MsgRcv(my_pid, &msg);
+
+      return;
+   }
+}
+
+// "cat" command, UserShell talks to FileSystem and TerminalOut
+// make sure cmd ends with \0: "cat file\0"
+void Cat(char *cmd, int TerminalOutPid, int FileSystemPid) {
+   int my_pid;
+   msg_t msg;
+   attr_t *p;
+
+   my_pid = GetPid();
+
+   cmd += 4; // skip 1st 4 letters "cat " and get the rest
+
+// apply standard "check target" protocol
+   msg.code = CHK_OBJ;
+   MyStrcpy(msg.data, cmd);
+
+   MsgSnd(FileSystemPid, &msg); // send msg to FileSystem
+   MsgRcv(my_pid, &msg);        // receive reply
+
+   p = (attr_t *)msg.data;      // otherwise, code good, chk attr_t
+
+   if(msg.code != GOOD || A_ISDIR(p->mode) ) { // if directory
+      MyStrcpy(msg.data, "Usage: cat [path]filename\n\0");
+      MsgSnd(TerminalOutPid, &msg);
+      MsgRcv(my_pid, &msg);
+
+      return;
+   }
+
+// 1st request to open it, then issue reads in loop
+
+// apply standard "open obj" protocol
+   msg.code = OPEN_OBJ;
+   MyStrcpy(msg.data, cmd);
+   MsgSnd(FileSystemPid, &msg);
+   MsgRcv(my_pid, &msg);
+
+   while(1) {      // apply standard "read target" protocol
+      msg.code = READ_OBJ;
+      MsgSnd(FileSystemPid, &msg);
+      MsgRcv(my_pid, &msg);
+// did it read OK?
+      if(msg.code != GOOD) break; // until EOF or...
+// otherwise, show file content via TerminalOut
+      MsgSnd(TerminalOutPid, &msg);
+      MsgRcv(my_pid, &msg);
+   }
+// apply standard "close target" protocol with FileSystem
+// if response is not good, show error msg via TerminalOut...
+   msg.code = CLOSE_OBJ;
+   MsgSnd(FileSystemPid, &msg);
+   MsgRcv(my_pid, &msg);
+
+   if(msg.code != GOOD) {
+      MyStrcpy(msg.data, "Cat: CLOSE_OBJ returns NOT GOOD!\n\0");
+      MsgSnd(TerminalOutPid, &msg);
+      MsgRcv(my_pid, &msg);
+
+      return;
+   }
 }

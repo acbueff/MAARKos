@@ -10,4 +10,7 @@ void PrintDriver();
 void UserShell();
 void TerminalIn();
 void TerminalOut();
+void DirStr(attr_t *p, char *str);
+void Dir(char *cmd, int TerminalOutPid, int FileSystemPid);
+void Cat(char *cmd, int TerminalOutPid, int FileSystemPid);
 #endif
