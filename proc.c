@@ -7,7 +7,7 @@
 #include "syscall.h"
 #include "type.h"
 #include "tool.h"
-
+//#include "FileSystem.h"
 void InitProc() {
 	int i;
    //show msg on PC:
@@ -97,8 +97,9 @@ void UserShell(){
    char login[101],password[101];
    int BAUD_RATE, divisor,               // serial port use
        i, my_pid, // size,
-       TerminalInPid = 3,                // helper: TerminalIn process
-       TerminalOutPid = 4;               // helper: TerminalOut process
+          TerminalInPid = 3,                // helper: TerminalIn process
+       TerminalOutPid = 4,               // helper: TerminalOut process
+       FileSystemPid = 5;                // File System PID 5               // helper: TerminalOut process
    //initialize the interface data structure:
    MyBzero((char*)&proc_interface,sizeof(proc_interface));
    proc_interface.out_q_sem = SemGet();//==1
@@ -148,9 +149,10 @@ void UserShell(){
 		MsgSnd(TerminalOutPid,&msg);
 		MsgRcv(my_pid,&msg);
 		//get what's entered(login)
-		MyStrcpy(login,msg.data);
+
 		MsgSnd(TerminalInPid,&msg);
 		MsgRcv(my_pid,&msg);
+		MyStrcpy(login,msg.data);
 		//prompt
 		MyStrcpy(msg.data,"(MAARK) password -> ");
 		MsgSnd(TerminalOutPid,&msg);
@@ -159,26 +161,29 @@ void UserShell(){
 		proc_interface.flag = 0;
 		//get what's entered(password)
 		//get what's entered
-		MyStrcpy(password,msg.data);
+
+		//cons_printf("BEFOREvalue of password: %s\n", password);
 		MsgSnd(TerminalInPid,&msg);
 		MsgRcv(my_pid,&msg);
+		MyStrcpy(password,msg.data);
 		//compare password
-		if(MyStrcmp(password,login, sizeof(login))){
+		if(MyStrcmp(password,login, MyStrlen(login))==0){
+			cons_printf("FOR CORRECT value of password: %s\n",password);
+			cons_printf("FOR CORRECTvalue of login: %s\n", login);
 			break;
 		}else{
+			cons_printf("FOR WRONGvalue of password: %s\n",password);
+			cons_printf("FOR WRONGvalue of login: %s\n",login);
 			MyStrcpy(msg.data,"Invalid login/password!\n");
 			MsgSnd(TerminalOutPid,&msg);
 			MsgRcv(my_pid,&msg);
 		}
+	}//inside whileloop 1
 
-
-	}
-  }
-
-  while(1){
+	  while(1){
 
       //prompt
-	  MyStrcpy(msg.data, "(My Team Name) UserShell -> ");
+	  MyStrcpy(msg.data, "(MAARK) UserShell -> ");
 	  MsgSnd(TerminalOutPid,&msg);
 	  MsgRcv(my_pid,&msg);
 
@@ -189,21 +194,22 @@ void UserShell(){
 	  if(MyStrlen(msg.data) ==0){//skip if empty
 		continue;
 	  }
-	  else if(MyStrcmp(msg.data, "out", sizeof("out"))||MyStrcmp(msg.data, "000", sizeof("000"))){
+	  else if(!MyStrcmp(msg.data, "out", sizeof("out"))||!MyStrcmp(msg.data, "000", sizeof("000"))){
 		break;//break to relogin
 	  }
-	  else if(MyStrcmp(msg.data, "dir", sizeof("dir"))||MyStrcmp(msg.data, "111", sizeof("111"))){
+	  else if(!MyStrcmp(msg.data, "dir", sizeof("dir"))||!MyStrcmp(msg.data, "111", sizeof("111"))){
 		Dir(msg.data, TerminalOutPid,FileSystemPid);
 		//prompt?
-		MsgSnd(TerminalOutPid,&msg);
-		MsgRcv(my_pid,&msg);
+		//MsgSnd(TerminalOutPid,&msg);
+		//MsgRcv(my_pid,&msg);
 		continue;
 	  }
-	  else if(MyStrcmp(msg.data, "dir", sizeof("cat"))||MyStrcmp(msg.data, "222", sizeof("222"))){
-		Cat(msg.data, TerminalOutPid, FileSystemPid);
+	  else if(!MyStrcmp(msg.data, "cat", sizeof("cat"))||!MyStrcmp(msg.data, "222", sizeof("222"))){
+
 		//prompt?
-		MsgSnd(TerminalOutPid,&msg);
-		MsgRcv(my_pid,&msg);
+		//MsgSnd(TerminalOutPid,&msg);
+		//MsgRcv(my_pid,&msg);
+		Cat(msg.data, TerminalOutPid, FileSystemPid);
         continue;
 	  }
 	  else{
@@ -213,6 +219,10 @@ void UserShell(){
 		  MsgRcv(my_pid,&msg);
 	  }
    }//end forever loop
+
+  }
+
+
 }
 
 void TerminalIn(){

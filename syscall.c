@@ -1,18 +1,18 @@
 // syscall.c
 // collection of syscalls, i.e., API
-#include "type.h" 
- 
+#include "type.h"
+
 int GetPid() {                   // no input, has return
    int x;
- 
+
    asm("int $48; movl %%eax, %0" // CPU inst
        : "=g" (x)                // output from asm("...")
        :                         // no input into asm("...")
        : "%eax");                // push before asm("..."), pop after
- 
+
    return x;
 }
- 
+
 // ...
 // ??? need to code GetTime() here
 // ...
@@ -23,12 +23,12 @@ int GetTime(){
 		: "=g" (x)
 		:
 		: "%eax"); //edx
-		
+
 	return x;
 }
- 
+
 void Sleep(int sleep_seconds) {  // has input, no return
- 
+
    asm("movl %0, %%eax; int $50" // CPU inst
        :                         // no output from asm("...")
        : "g" (sleep_seconds)     // input into asm("...")
@@ -41,7 +41,7 @@ int SemGet(){
 		: "=g" (x)
 		:
 		: "%eax");
-	
+
 	return x;
 }
 
@@ -51,7 +51,7 @@ void SemPost(int semaphore_num){
 		:
 		: "g" (semaphore_num)
 		: "%eax");
-}	
+}
 
 void SemWait(int semaphore_num){
 
@@ -59,7 +59,7 @@ void SemWait(int semaphore_num){
 		:
 		: "g" (semaphore_num)
 		: "%eax");
-}	
+}
 
 void MsgSnd(int y, msg_t *msg_t){
 
@@ -67,7 +67,7 @@ void MsgSnd(int y, msg_t *msg_t){
 		:
 		:"g"(y),"g"((int)msg_t)
 		:"%eax","%ebx");
-	
+
 }
 
 void MsgRcv(int y, msg_t *msg_t){
@@ -76,7 +76,7 @@ void MsgRcv(int y, msg_t *msg_t){
 		:
 		:"g"(y),"g"((int)msg_t)
 		:"%eax","%ebx");
-		
+
 }
 
 void TripTerminal(){

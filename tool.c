@@ -5,7 +5,7 @@
 #include "extern.h"
 
 void MyBzero(char *p, int size) {
-	
+
 	while(size--){
 		*p++ = 0;
 	}
@@ -27,7 +27,7 @@ void EnQ(int pid, q_t *p) {
 		p->size++;
     }
     else{
-         if(p->size < 20){   
+         if(p->size < 20){
 			p->q[p->tail] = pid;
 			p->tail++;
 		if(p->tail == 20){
@@ -65,12 +65,12 @@ int DeQ(q_t *p) { // return -1 if q is empty
 }
 
 void MsgEnQ(msg_t *p,mbox_t *q){
-	
+
 	if(q->size == 20){
 		cons_printf("mbox is FULL\n");
 		return;
 	}
-	
+
 	if(q->size == 0){//check if it is empty
         q->msg[q->head] = *p;
         q->tail++;
@@ -80,20 +80,20 @@ void MsgEnQ(msg_t *p,mbox_t *q){
 		q->size++;
     }
     else{
-        if(q->size < 20){   
+        if(q->size < 20){
 			q->msg[q->tail] = *p;
 			q->tail++;
 		    if(q->tail == 20){
 				q->tail = 0;
 		    }
             q->size++;
-         } 
+         }
     }
 
 }
 msg_t* MsgDeQ(mbox_t *p){
 	msg_t *msg;
-	
+
 	if(p->size == 0){
 		cons_printf("mbox is empty\n");
 		return 0;
@@ -123,9 +123,27 @@ int MyStrlen(char *str){
 int MyStrcmp(char *str1, char *str2, int size){
 	while(size--){
         if(*str1++!=*str2++){
-            return *(unsigned char*)(str1 - 1) - *(unsigned char*)(str2 - 1);
+            return 1;//*(unsigned char*)(str1 - 1) - *(unsigned char*)(str2 - 1);
 		}
 	}
 	return 0;
 
+}
+
+void MyMemcpy(char *dest, char *src, int size){
+   // Typecast src and dest addresses to (char *)
+   char *csrc = (char *)src;
+   char *cdest = (char *)dest;
+
+   int i;
+   // Create a temporary array to hold data of src
+   char temp[size];
+
+   // Copy data from csrc[] to temp[]
+   for (i=0; i<size; i++)
+       temp[i] = csrc[i];
+
+   // Copy data from temp[] to cdest[]
+   for (i=0; i<size; i++)
+       cdest[i] = temp[i];
 }

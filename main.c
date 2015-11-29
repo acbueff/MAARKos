@@ -28,16 +28,20 @@ interface_t proc_interface;
 
 struct i386_gate *IDT_ptr;
 
+char *str1 = "word";
+char *str2 = "word";
+int check;
 
 int main() {
-
+	//check =
 	SetData();
 	SetControl();
 	NewProcISR();//create init proc
 	NewProcISR();//create printdriver
-	NewProcISR();
-	NewProcISR();
-	NewProcISR();
+	NewProcISR();//user
+	NewProcISR();//termin
+	NewProcISR();//termout
+	NewProcISR();//filesys
 	Scheduler();
 	Loader(pcb[run_pid].trapframe_p);
 

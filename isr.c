@@ -6,6 +6,7 @@
 #include "tool.h"
 #include "extern.h"
 #include "proc.h"
+//#include "FileSystem.h"
 
 void NewProcISR(){
 	int new_pid;
@@ -37,20 +38,29 @@ void NewProcISR(){
    pcb[new_pid].trapframe_p = (trapframe_t *)
       &stack[new_pid][STACK_SIZE-sizeof(trapframe_t)];
 
-   if(new_pid == 0){
-      pcb[new_pid].trapframe_p->eip = (unsigned int)InitProc;   // InitProc process
-   }
-   if(new_pid == 1){
-      pcb[new_pid].trapframe_p->eip = (unsigned int)PrintDriver;   // other processes
-   }
-   if(new_pid == 2){
-      pcb[new_pid].trapframe_p->eip = (unsigned int)UserShell;   // other processes
-   }
-   if(new_pid == 3){
-      pcb[new_pid].trapframe_p->eip = (unsigned int)TerminalIn;   // other processes
-   }
-   if(new_pid == 4){
-      pcb[new_pid].trapframe_p->eip = (unsigned int)TerminalOut;   // other processes
+
+
+   switch(new_pid){
+	   case 0:
+		  pcb[new_pid].trapframe_p->eip = (unsigned int)InitProc;   // InitProc process
+		  break;
+	   case 1:
+		  pcb[new_pid].trapframe_p->eip = (unsigned int)PrintDriver;   // other processes
+		  break;
+	   case 2:
+		  pcb[new_pid].trapframe_p->eip = (unsigned int)UserShell;   // other processes
+		  break;
+	   case 3:
+		  pcb[new_pid].trapframe_p->eip = (unsigned int)TerminalIn;   // other processes
+		  break;
+	   case 4:
+		  pcb[new_pid].trapframe_p->eip = (unsigned int)TerminalOut;   // other processes
+	      break;
+	   case 5:
+		  pcb[new_pid].trapframe_p->eip = (unsigned int)FileSystem;   // other processes
+		   break;
+		default:
+			break;
    }
 
 /**	else{
