@@ -1,6 +1,6 @@
 // main.c, 159
 // kernel is only simulated
-// Phase 6
+// Phase 8
 // Team Name: MAARK (Members: Andreas Bueff, Mike Smith)
 
 #include "spede.h"      // spede stuff
@@ -25,7 +25,7 @@ semaphore_t semaphore[Q_SIZE];
 //int product_semaphore, product_count;
 int system_print_semaphore;
 interface_t proc_interface;
-
+page_info_t page_info[MAX_PROC*5];
 struct i386_gate *IDT_ptr;
 
 char *str1 = "word";
@@ -59,6 +59,10 @@ void SetData() {
    MyBzero((char*)&sleep_q,sizeof(sleep_q));
    MyBzero((char*)&semaphore_q,sizeof(semaphore_q));
    MyBzero((char*)&mbox[0],sizeof(mbox_t));
+  for(i = 0; i < MAX_PROC*5;i++){
+   page_info[i].pid = -1;
+   page_info[i].addr = (i*0x1000) + 0xE00000;//NOT SURE
+  }
    /**queue ID's 0~19 into unused_q*/
    for(i = 0; i < Q_SIZE; i++){
 	EnQ(i,&unused_q);
@@ -101,7 +105,8 @@ contains 3 statements learned from the timer lab:
 	//program PIC mask//153
 	SetEntry(32, TimerEntry);//fill out IDT timer entry (for handling of timer interrupts)
 	SetEntry(35, TerminalEntry);
-	SetEntry(39, PrinterEntry);
+	SetEntry(39, PrinterEntry);//FIX!!
+
 
 	/**add new IDT entires----not correct yet*/
 	SetEntry(48, GetPidEntry);
@@ -112,6 +117,9 @@ contains 3 statements learned from the timer lab:
 	SetEntry(53, SemWaitEntry);
 	SetEntry(54, MsgSndEntry);
 	SetEntry(55, MsgRcvEntry);
+	SetEntry(56, ForkEntry);
+	SetEntry(57, WaitEntry);
+	SetEntry(58, ExitEntry);
 	outportb(0x21, ~137);
 }
 
@@ -157,6 +165,15 @@ void Kernel(trapframe_t *p) {
 			break;
 		case MSGRCV_INTR:
 			MsgRcvISR();
+			break;
+		case FORK_INTR:
+			ForkISR();
+			break;
+		case WAIT_INTR:
+			WaitISR();
+			break;
+		case EXIT_INTR:
+			ExitISR();
 			break;
 		default:
 			cons_printf("Kernel Panic: no such intr # (%d)!\n", p->intr_num);

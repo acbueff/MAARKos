@@ -27,19 +27,19 @@ ENTRY(TimerEntry)
    pushl $TIMER_INTR
    jmp CommonRoutine
 
- //not sure if this is correct   
+ //not sure if this is correct
 ENTRY(GetPidEntry)
    pushl $GETPID_INTR
    jmp CommonRoutine
-   
+
 ENTRY(GetTimeEntry)
    pushl $GETTIME_INTR
    jmp CommonRoutine
-   
+
 ENTRY(SleepEntry)
    pushl $SLEEP_INTR
    jmp CommonRoutine
-   
+
 ENTRY(SemGetEntry)
    pushl $SEMGET_INTR
    jmp CommonRoutine
@@ -51,23 +51,35 @@ ENTRY(SemPostEntry)
 ENTRY(SemWaitEntry)
    pushl $SEMWAIT_INTR
    jmp CommonRoutine
-   
+
 ENTRY(MsgSndEntry)
 	pushl $MSGSND_INTR
 	jmp CommonRoutine
-	
+
 ENTRY(MsgRcvEntry)
 	pushl $MSGRCV_INTR
 	jmp CommonRoutine
-	
+
 ENTRY(PrinterEntry)
 	pushl $PRINTER_INTR
 	jmp CommonRoutine
 
 ENTRY(TerminalEntry)
 	pushl $TERMINAL_INTR
-	jmp CommonRoutine	
-   
+	jmp CommonRoutine
+
+ENTRY(ForkEntry)
+	pushl $FORK_INTR
+	jmp CommonRoutine
+
+ENTRY(WaitEntry)
+	pushl $WAIT_INTR
+	jmp CommonRoutine
+
+ENTRY(ExitEntry)
+	pushl $EXIT_INTR
+	jmp CommonRoutine
+
 // Common IRQ entry, save context and call Kernel()
 CommonRoutine:
    pusha
@@ -82,4 +94,4 @@ CommonRoutine:
    pushl %edx
    call CNAME(Kernel)
 
-  
+

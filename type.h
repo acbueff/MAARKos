@@ -5,7 +5,7 @@
 
 #include "trapframe.h"
 
-#define T_SLICE 1          // max timer ticks in 1 run
+#define T_SLICE 10          // max timer ticks in 1 run
 #define MAX_PROC 20          // max number of processes
 #define Q_SIZE 20            // queuing capacity
 #define STACK_SIZE 8196      // process runtime stack in bytes
@@ -19,7 +19,8 @@ typedef struct {             // PCB describes proc image
    int total_time;    // total run time since created
    int wake_time;
    trapframe_t *trapframe_p; // points to trapframe of process
-} pcb_t;
+   int ppid;
+ } pcb_t;
 
 typedef struct {             // proc queue type
    int q[Q_SIZE];            // indices into q[] array to place or get element
@@ -35,8 +36,10 @@ typedef struct {
       int sender;         // sender
       int time_stamp;    // time sent
       char data[101];           // just this for now
+	  int code;
+	  int number[3];
 }msg_t;
- 
+
 typedef struct {
       msg_t msg[Q_SIZE];
       int head, tail, size;
@@ -52,6 +55,12 @@ typedef struct {    // Phase 6
           flag,        // echo back to terminal or not
           out_extra;   // if 1, TXRDY event occurred while echo_q and out_q both empty
 }interface_t;
+
+
+typedef struct{
+	int pid;//pid that uses RAM page
+	int addr;//location of 4KB RAM
+}page_info_t;
 
 typedef void (*func_ptr_t)(); // void-return function pointer type
 

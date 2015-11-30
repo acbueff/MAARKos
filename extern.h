@@ -11,11 +11,12 @@ extern int system_time;
 
 extern int system_print_semaphore;
 extern semaphore_t semaphore[Q_SIZE];
-extern q_t proc_q, unused_q, sleep_q, semaphore_q;             
+extern q_t proc_q, unused_q, sleep_q, semaphore_q;
 extern mbox_t mbox[MAX_PROC];
 extern pcb_t pcb[MAX_PROC];              // process table
 extern char stack[MAX_PROC][STACK_SIZE]; // runtime stacks of processes
 extern interface_t proc_interface;
+extern page_info_t page_info[MAX_PROC*5];
 //testing
 
 

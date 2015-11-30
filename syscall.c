@@ -81,6 +81,34 @@ void MsgRcv(int y, msg_t *msg_t){
 
 void TripTerminal(){
 	asm("int $35");
+
 }
+//PHASE8
+void Fork(char *addr){
+	//asm("int $56");
+	asm("movl %0, %%eax; int $56"
+		:
+		: "g" (addr)
+		: "%eax");
+}
+
+int Wait(int *exit_num){
+	//asm("int $57");
+	int child_pid;
+	asm("movl %0, %%eax; $57; movl %%ebx, %0"
+		: "=g" (child_pid)
+		:"g"(exit_num)
+		: "%eax","%ebx");
+
+	return child_pid;
+}
+void Exit(int exit_num){
+	//asm("int $58");
+	asm("movl %0, %%eax; int $58"
+		:
+		: "g" (exit_num)
+		: "%eax");
+}
+
 
 

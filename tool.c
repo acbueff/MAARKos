@@ -123,10 +123,10 @@ int MyStrlen(char *str){
 int MyStrcmp(char *str1, char *str2, int size){
 	while(size--){
         if(*str1++!=*str2++){
-            return 1;//*(unsigned char*)(str1 - 1) - *(unsigned char*)(str2 - 1);
+            return 0;//*(unsigned char*)(str1 - 1) - *(unsigned char*)(str2 - 1);
 		}
 	}
-	return 0;
+	return 1;
 
 }
 

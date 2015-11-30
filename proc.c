@@ -58,6 +58,7 @@ void PrintDriver() {
    int i, code;
    msg_t my_msg;
    char *p;
+
 	int ownPID =  GetPid();
    //get a semaphore for the new global int system_print_semaphore
 	system_print_semaphore = SemGet();
@@ -93,10 +94,11 @@ void PrintDriver() {
 
 void UserShell(){
    msg_t msg;
+   attr_t *ptr;
    char something[101]; // a handy string
    char login[101],password[101];
    int BAUD_RATE, divisor,               // serial port use
-       i, my_pid, // size,
+       i, my_pid, exit_num,child_pid,// size,
           TerminalInPid = 3,                // helper: TerminalIn process
        TerminalOutPid = 4,               // helper: TerminalOut process
        FileSystemPid = 5;                // File System PID 5               // helper: TerminalOut process
@@ -167,7 +169,7 @@ void UserShell(){
 		MsgRcv(my_pid,&msg);
 		MyStrcpy(password,msg.data);
 		//compare password
-		if(MyStrcmp(password,login, MyStrlen(login))==0){
+		if(MyStrcmp(password,login, MyStrlen(login))){
 			cons_printf("FOR CORRECT value of password: %s\n",password);
 			cons_printf("FOR CORRECTvalue of login: %s\n", login);
 			break;
@@ -194,17 +196,17 @@ void UserShell(){
 	  if(MyStrlen(msg.data) ==0){//skip if empty
 		continue;
 	  }
-	  else if(!MyStrcmp(msg.data, "out", sizeof("out"))||!MyStrcmp(msg.data, "000", sizeof("000"))){
+	  else if(MyStrcmp(msg.data, "out", sizeof("out"))||MyStrcmp(msg.data, "000", sizeof("000"))){
 		break;//break to relogin
 	  }
-	  else if(!MyStrcmp(msg.data, "dir", sizeof("dir"))||!MyStrcmp(msg.data, "111", sizeof("111"))){
+	  else if(MyStrcmp(msg.data, "dir", sizeof("dir"))||MyStrcmp(msg.data, "111", sizeof("111"))){
 		Dir(msg.data, TerminalOutPid,FileSystemPid);
 		//prompt?
 		//MsgSnd(TerminalOutPid,&msg);
 		//MsgRcv(my_pid,&msg);
 		continue;
 	  }
-	  else if(!MyStrcmp(msg.data, "cat", sizeof("cat"))||!MyStrcmp(msg.data, "222", sizeof("222"))){
+	  else if(MyStrcmp(msg.data, "cat", MyStrlen("cat"))||MyStrcmp(msg.data, "222", sizeof("222"))){
 
 		//prompt?
 		//MsgSnd(TerminalOutPid,&msg);
@@ -212,11 +214,33 @@ void UserShell(){
 		Cat(msg.data, TerminalOutPid, FileSystemPid);
         continue;
 	  }
-	  else{
-		//prompt
-		  MyStrcpy(msg.data, "Bad command!\n");
+	  else{//COMMAND NOT MATCHING cat, dir, out
+	    //check with file system
+		 msg.code = CHK_OBJ;
+		 MsgSnd(FileSystemPid,&msg);//should be 5
+		 MsgRcv(my_pid,&msg);
+		 ptr = (attr_t *)msg.data;
+		 if(msg.code != GOOD || ptr->mode != MODE_EXEC){
+				cons_printf("error message\n");
+				 MyStrcpy(msg.data, "terminal: error message!\n");
+				 MsgSnd(TerminalOutPid,&msg);
+		         MsgRcv(my_pid,&msg);
+				continue;
+		 }
+		 else{
+			Fork((char*)&ptr->data);
+			//shell waits
+			child_pid = Wait(&exit_num);
+			Exit(exit_num);
+		 //prompt
+		  MyStrcpy(msg.data, "child pid: %d, exit_num: %d!\n",child_pid,exit_num);
 		  MsgSnd(TerminalOutPid,&msg);
 		  MsgRcv(my_pid,&msg);
+
+		 }
+
+
+
 	  }
    }//end forever loop
 

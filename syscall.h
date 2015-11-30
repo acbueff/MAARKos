@@ -1,10 +1,10 @@
 // syscall.h
- 
+
 #ifndef _SYSCALL_H_
 #define _SYSCALL_H_
- #include "type.h" 
+ #include "type.h"
 int GetPid(void);  // no input, 1 return
-int GetTime(void); 
+int GetTime(void);
 void Sleep(int);   // 1 input, no return
 int SemGet(void);
 void SemPost(int);
@@ -12,6 +12,8 @@ void SemWait(int);
 void MsgSnd(int, msg_t *);
 void MsgRcv(int, msg_t *);
 void TripTerminal(void);
-
+void Fork(char *addr);
+int Wait(int *exit_num);
+void Exit(int exit_num);
 
 #endif

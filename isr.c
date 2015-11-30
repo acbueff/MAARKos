@@ -308,3 +308,109 @@ void TerminalISRin(){
 
 }
 
+void ForkISR(){
+	int i = 0;
+	int pid;// = GetPid();
+	int page;
+	if(unused_q.size == 0){
+		cons_printf( "Kernel Panic: no available PID!\n");
+		return;
+	}
+	while(1){
+		if(page_info[i].pid == -1){
+			page = i;
+			break;
+		}
+		if(i == (MAX_PROC*5)-1 && page_info[i] != -1){
+			cons_printf( "Kernel Panic: no available RAM page!\n");
+			return;
+		}
+		i++;
+	}
+	/**
+	for(i = 0; i < (MAX_PROC*5);i++){
+		if(page_info[i] != null){
+			page = i;
+			break;
+		}
+		if(i == (MAX_PROC*5)-1 && page_info[i] == null){
+			cons_printf( "Kernel Panic: no available RAM page!\n");
+			return;
+		}
+
+	}
+
+	*/
+
+	pid = DeQ((char*)unused_q);
+	page_info[page].pid = pid;
+	//set "pid" info og allocated ram page t
+	EnQ(pid,proc_q);
+	MyBzero((char*)&mbox[pid], sizeof(mbox_t);
+	//set PCB
+	pcb[pid].time = 0;
+	pcb[pid].total_time = 0;
+	pcb[pid].state =READY;
+	pcb[pid].ppid = run_pid;//set to calling process
+	MyMemcpy(&page_info[page],&pcb[run_pid].trapframe_p->eax,sizeof(pcb[run_pid].trapframe_p->eax));//to RAM page
+	pcb[pid].trapframe_p = (trapframe_t *)&page_info[page] + sizeof(page_info[page])-sizeof(trapframe_t);//begin of 4KB page +128
+
+   pcb[pid].trapframe_p->eip = &page_info[page]+0x80;
+   pcb[pid].trapframe_p->eflags = EF_DEFAULT_VALUE|EF_INTR; // set INTR flag
+   pcb[pid].trapframe_p->cs = get_cs();                     // standard fair
+   pcb[pid].trapframe_p->ds = get_ds();                     // standard fair
+   pcb[pid].trapframe_p->es = get_es();                     // standard fair
+   pcb[pid].trapframe_p->fs = get_fs();                     // standard fair
+   pcb[pid].trapframe_p->gs = get_gs();
+}
+
+void WaitISR(){
+	int child_pid;
+	int i;
+	for(i = 0; i < MAX_PROC; i++){
+		if(pcb[i].ppid = run_pid && pscb[i].state ==ZOMBIE){
+			child_pid = i;
+		}
+		else if(i == 20 -1){
+			pcb[child_pid
+		}
+
+	}
+	while(1){
+		if(page_info[i] != null){
+			page = i;
+			break;
+		}
+		if(i == (MAX_PROC*5) && page_info[i] == null){
+			cons_printf( "Kernel Panic: no available RAM page!\n");
+			return;
+		}
+		i++;
+	}
+
+
+}
+
+void ExitISR(){
+	int i;
+	int child_pid;
+	int exit_num = pcb[run_pid].trapframe_p->eax;
+	//int pid = pcb[run_pid].trapframe_p->eax;
+	int ppid = pcb[run_pid].ppid;
+	if(pcb[ppid].state != WAIT4CHILD){
+		pcb[run_pid].state == ZOMBIE;
+		run_pid = -1;
+		return;
+	}
+	else{
+		//release parent
+		pcb[ppid].state == READY;
+		EnQ(ppid, &proc_q);
+		pcb[ppid].trapframe_p->ebx = run_pid;
+
+
+
+	}
+}
+
+

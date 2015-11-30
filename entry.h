@@ -20,6 +20,9 @@
 #define MSGRCV_INTR 55
 #define PRINTER_INTR 39
 #define TERMINAL_INTR 35
+#define FORK_INTR 56
+#define WAIT_INTR 57
+#define EXIT_INTR 58
 
 // ISR Entries
 #ifndef ASSEMBLER
@@ -41,7 +44,11 @@ __BEGIN_DECLS
  //PHASE 5
  void PrinterEntry();
  void TerminalEntry();
-  
+ //PHASE 8
+ void ForkEntry();
+ void WaitEntry();
+ void ExitEntry();
+
 __END_DECLS
 
 #endif

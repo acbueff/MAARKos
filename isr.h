@@ -19,6 +19,9 @@ void PrinterISR();
 void TerminalISR();
 void TerminalISRout();
 void TerminalISRin();
+void ForkISR();
+void WaitISR();
+void ExitISR();
 
 
 
