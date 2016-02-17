@@ -17,8 +17,10 @@ extern pcb_t pcb[MAX_PROC];              // process table
 extern char stack[MAX_PROC][STACK_SIZE]; // runtime stacks of processes
 extern interface_t proc_interface;
 extern page_info_t page_info[MAX_PROC*5];
+extern int kernel_MMU_addr;
 //testing
 
 
 
 #endif
+

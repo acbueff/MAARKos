@@ -8,20 +8,20 @@
 # (DO NOT MISTYPE with sleep.s which will DELETE your sleep.s code!)
 # It does:
 #    make-bin.pl sleep.s, which includes:
-#       as --32 sleep.s -o sleep.o 
+#       as --32 sleep.s -o sleep.o
 #       link386 -nostartfiles -userapp sleep.o -o sleep
 # sleep.bin is the final file to be included into the file system
 
 # If curious about how code in memory: as -a sleep.s
 
-.text               # code segment 
-.global _start      # _start is gonna be main()
+.text                       # code segment
+.global _start              # _start is main()
 
-_start:             # instructions starts
-   int  $48				# seconds to sleep, movl $3, %eax 
+_start:            # instructions starts
+   int  $48			# seconds to sleep movl $3, %eax
    int  $50         # call sleep service
 
-   int  $49				# exit number, movl $77, %eax
+   int  $49            # exit number movl $77, %eax
    int  $58         # call exit service
 
 .data               # examples of defining data if needed
@@ -30,7 +30,7 @@ x:
 str1:
    .ascii "this is a string\n\0" # a null-terminated string
 str2:                     # another string, 101 chars total
-   .ascii "Greetings! Team MAARK\n"
+   .ascii "Greetings! (OS TEAM NAME)\n"
    .rept 100              # repeat: 100 times
       .ascii "\0"         # NUL characters
    .endr                  # end of repeat

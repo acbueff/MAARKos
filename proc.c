@@ -97,6 +97,7 @@ void UserShell(){
    attr_t *ptr;
    char something[101]; // a handy string
    char login[101],password[101];
+
    int BAUD_RATE, divisor,               // serial port use
        i, my_pid, exit_num,child_pid,// size,
           TerminalInPid = 3,                // helper: TerminalIn process
@@ -162,20 +163,14 @@ void UserShell(){
 		//turn echo flag off in interface
 		proc_interface.flag = 0;
 		//get what's entered(password)
-		//get what's entered
-
-		//cons_printf("BEFOREvalue of password: %s\n", password);
 		MsgSnd(TerminalInPid,&msg);
 		MsgRcv(my_pid,&msg);
 		MyStrcpy(password,msg.data);
 		//compare password
 		if(MyStrcmp(password,login, MyStrlen(login))){
-			cons_printf("FOR CORRECT value of password: %s\n",password);
-			cons_printf("FOR CORRECTvalue of login: %s\n", login);
 			break;
 		}else{
-			cons_printf("FOR WRONGvalue of password: %s\n",password);
-			cons_printf("FOR WRONGvalue of login: %s\n",login);
+
 			MyStrcpy(msg.data,"Invalid login/password!\n");
 			MsgSnd(TerminalOutPid,&msg);
 			MsgRcv(my_pid,&msg);
@@ -185,6 +180,7 @@ void UserShell(){
 	  while(1){
 
       //prompt
+	  proc_interface.flag = 1;
 	  MyStrcpy(msg.data, "(MAARK) UserShell -> ");
 	  MsgSnd(TerminalOutPid,&msg);
 	  MsgRcv(my_pid,&msg);
@@ -193,6 +189,7 @@ void UserShell(){
 	  MyStrcpy(something,msg.data);
 	  MsgSnd(TerminalInPid,&msg);
 	  MsgRcv(my_pid,&msg);
+
 	  if(MyStrlen(msg.data) ==0){//skip if empty
 		continue;
 	  }
@@ -201,16 +198,10 @@ void UserShell(){
 	  }
 	  else if(MyStrcmp(msg.data, "dir", sizeof("dir"))||MyStrcmp(msg.data, "111", sizeof("111"))){
 		Dir(msg.data, TerminalOutPid,FileSystemPid);
-		//prompt?
-		//MsgSnd(TerminalOutPid,&msg);
-		//MsgRcv(my_pid,&msg);
 		continue;
 	  }
-	  else if(MyStrcmp(msg.data, "cat", MyStrlen("cat"))||MyStrcmp(msg.data, "222", sizeof("222"))){
+	  else if(MyStrcmp(msg.data, "cat", MyStrlen("cat"))||MyStrcmp(msg.data, "222", MyStrlen("222"))){
 
-		//prompt?
-		//MsgSnd(TerminalOutPid,&msg);
-		//MsgRcv(my_pid,&msg);
 		Cat(msg.data, TerminalOutPid, FileSystemPid);
         continue;
 	  }
@@ -228,18 +219,31 @@ void UserShell(){
 				continue;
 		 }
 		 else{
-			Fork((char*)&ptr->data);
+			Fork((char*)ptr->data);
+
 			//shell waits
+			exit_num = GetTime();
 			child_pid = Wait(&exit_num);
-			Exit(exit_num);
 		 //prompt
-		  MyStrcpy(msg.data, "child pid: %d, exit_num: %d!\n",child_pid,exit_num);
+
+		  MyStrcpy(msg.data, "child pid: ");
 		  MsgSnd(TerminalOutPid,&msg);
 		  MsgRcv(my_pid,&msg);
-
+		  sprintf(something,"%d",child_pid);
+		  MyStrcpy(msg.data, something);
+		  MsgSnd(TerminalOutPid,&msg);
+		  MsgRcv(my_pid,&msg);
+		  sprintf(something,"%d",exit_num);
+		  MyStrcpy(msg.data, " exit num: ");
+		  MsgSnd(TerminalOutPid,&msg);
+		  MsgRcv(my_pid,&msg);
+		  MyStrcpy(msg.data, something);
+		  MsgSnd(TerminalOutPid,&msg);
+		  MsgRcv(my_pid,&msg);
+		  MyStrcpy(msg.data, "\n");
+		  MsgSnd(TerminalOutPid,&msg);
+		  MsgRcv(my_pid,&msg);
 		 }
-
-
 
 	  }
    }//end forever loop

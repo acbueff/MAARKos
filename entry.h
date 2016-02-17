@@ -6,6 +6,8 @@
 #include <spede/machine/pic.h>
 
 #define TIMER_INTR 32
+#define PRINTER_INTR 39
+#define TERMINAL_INTR 35
 
 #define KCODE 0x08         // kernel's code segment
 #define KDATA 0x10         // kernel's data segment
@@ -18,8 +20,7 @@
 #define SEMWAIT_INTR 53
 #define MSGSND_INTR 54
 #define MSGRCV_INTR 55
-#define PRINTER_INTR 39
-#define TERMINAL_INTR 35
+
 #define FORK_INTR 56
 #define WAIT_INTR 57
 #define EXIT_INTR 58

@@ -1,7 +1,7 @@
 // syscall.c
 // collection of syscalls, i.e., API
 #include "type.h"
-
+#include "spede.h"
 int GetPid() {                   // no input, has return
    int x;
 
@@ -93,13 +93,12 @@ void Fork(char *addr){
 }
 
 int Wait(int *exit_num){
-	//asm("int $57");
-	int child_pid;
-	asm("movl %0, %%eax; $57; movl %%ebx, %0"
-		: "=g" (child_pid)
-		:"g"(exit_num)
-		: "%eax","%ebx");
 
+	int child_pid;
+	asm("movl %1, %%eax; int $57; movl %%ebx, %0"
+		: "=g" (child_pid)
+		:"g"((int)exit_num)
+		: "%eax","%ebx");
 	return child_pid;
 }
 void Exit(int exit_num){

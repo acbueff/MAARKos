@@ -20,6 +20,7 @@ typedef struct {             // PCB describes proc image
    int wake_time;
    trapframe_t *trapframe_p; // points to trapframe of process
    int ppid;
+   int MMU_addr;
  } pcb_t;
 
 typedef struct {             // proc queue type

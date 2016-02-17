@@ -16,7 +16,7 @@
 int run_pid;   // current running PID, if -1, no one running
 
 int system_time;
-
+int kernel_MMU_addr;
 q_t proc_q, unused_q, sleep_q,semaphore_q;   // processes ready to run and ID's un-used
 pcb_t pcb[MAX_PROC];    // process table
 mbox_t mbox[MAX_PROC];
@@ -28,12 +28,8 @@ interface_t proc_interface;
 page_info_t page_info[MAX_PROC*5];
 struct i386_gate *IDT_ptr;
 
-char *str1 = "word";
-char *str2 = "word";
-int check;
-
 int main() {
-	//check =
+
 	SetData();
 	SetControl();
 	NewProcISR();//create init proc
@@ -53,6 +49,7 @@ void SetData() {
 	system_time = 0;
 	//product_mbox_num = 0;
    system_print_semaphore = 0;
+   kernel_MMU_addr = get_cr3();//PHASE9
 
    MyBzero((char*)&proc_q,sizeof(proc_q));   //set process to run queue to all 0s
    MyBzero((char*)&unused_q,sizeof(unused_q)); //set unused processes queue to all 0s
@@ -106,7 +103,6 @@ contains 3 statements learned from the timer lab:
 	SetEntry(32, TimerEntry);//fill out IDT timer entry (for handling of timer interrupts)
 	SetEntry(35, TerminalEntry);
 	SetEntry(39, PrinterEntry);//FIX!!
-
 
 	/**add new IDT entires----not correct yet*/
 	SetEntry(48, GetPidEntry);
@@ -184,6 +180,7 @@ void Kernel(trapframe_t *p) {
 
 
    Scheduler();// to choose next running process if needed
+   set_cr3(pcb[run_pid].MMU_addr);
    Loader(pcb[run_pid].trapframe_p);
 }
 
