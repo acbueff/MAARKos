@@ -8,7 +8,7 @@ MAARKos is a simple multitasking operating system built for CSc159 taught by Dr.
      _entry.S/h:_ loads process trapframe to CPU registers to be run
      **extern.c** key variables and data structures 
      **isr.c/h:** Interrupt service routines, 
-     **
+     **main.c/k:** Begins boot sequence for operating system
 
 
 ## System Requirements
